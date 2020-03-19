@@ -8,6 +8,16 @@ from models import setup_db, Question, Category
 
 QUESTIONS_PER_PAGE = 10
 
+
+
+def questions_pager(req, sel):
+  get_page = req.args.get("page",type=int)
+  start_sel = (get_page - 1) * QUESTIONS_PER_PAGE
+  end_sel = start_sel + QUESTIONS_PER_PAGE
+
+  format_questions = [question.format() for question in sel]
+  return format_questions[start_sel:end_sel]
+
 def create_app(test_config=None):
   # create and configure the app
   app = Flask(__name__)
@@ -16,16 +26,30 @@ def create_app(test_config=None):
   '''
   @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
   '''
+  #from lesson - enable cors * origin
+  cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 
   '''
   @TODO: Use the after_request decorator to set Access-Control-Allow
   '''
+  @app.after_request
+  #add the proper headers and methods for request response settings
+  def after_request(response):
+    response.headers.add('Access-Control-Allow-Headers','Content-Type, Authorization')
+    response.headers.add('Access-Control-Allow-Methods','GET, PUT, POST, PATCH, DELETE, OPTIONS')
+    return response
+
 
   '''
   @TODO: 
   Create an endpoint to handle GET requests 
   for all available categories.
   '''
+  @app.route("/api/categories")
+  def get_categories():
+    #get all categories from db and return
+    categories = Category.query.all()
+    return jsonify({'success': True, 'categories': [db_category.type for db_category in categories]})
 
 
   '''
@@ -41,6 +65,23 @@ def create_app(test_config=None):
   Clicking on the page numbers should update the questions. 
   '''
 
+  @app.route("/api/questions")
+  def get_questions():
+    #get all questions first form db
+    get_all_questions = Question.query.all() 
+    #paginate the questions using utility function
+    questions = questions_pager(request, get_all_questions)
+    #get all categories first form db
+    categories = Category.query.all()
+    #start an empty dict to build categories out with keys
+    categories_listings = {}
+
+    #fill new dict with proper data for categories
+    for individual_category in categories:
+      categories_listings[individual_category.id] = individual_category.type
+    
+    return jsonify({'success': True, 'questions': questions, 'total_questions': len(get_all_questions), 'categories': categories_listings})
+
   '''
   @TODO: 
   Create an endpoint to DELETE question using a question ID. 
@@ -48,6 +89,19 @@ def create_app(test_config=None):
   TEST: When you click the trash icon next to a question, the question will be removed.
   This removal will persist in the database and when you refresh the page. 
   '''
+
+  @app.route("/api/questions/<int:q_id>", methods=["DELETE"])
+  def del_question(q_id):
+    #get the question id from the url and query questions table to get the question wanting to be deleted
+    question = Question.query.get(q_id)
+
+    #if the question doesnt exist, 404
+    if not question: 
+      return abort(404, 'Question does not exist')
+    
+    #issue the delete of the question and return the deleted ID
+    question.delete()
+    return jsonify({'deleted':q_id})
 
   '''
   @TODO: 
@@ -60,6 +114,19 @@ def create_app(test_config=None):
   of the questions list in the "List" tab.  
   '''
 
+  @app.route("/api/questions", methods=["POST"])
+  def add_question():
+    # get json body of request based on the front end sending it to you with predefined names
+    answer = request.json.get("answer")
+    category = request.json.get("category")
+    difficulty = request.json.get("difficulty")
+    question = request.json.get("question")
+
+    # assemble new question with the passed in data
+    new_question = Question(question,answer,category,difficulty)
+    # insert the new question
+    new_question.insert()
+    return jsonify(request.json)
   '''
   @TODO: 
   Create a POST endpoint to get questions based on a search term. 
@@ -79,6 +146,16 @@ def create_app(test_config=None):
   categories in the left column will cause only questions of that 
   category to be shown. 
   '''
+
+  @app.route("/api/categories/<int:cate_id>/questions")
+  def get_questions_based_on_category(cate_id):
+
+    questions = Question.query.filter_by(Question.category=cate_id).all()
+
+    paginated_questions = questions_pager(request, questions)
+
+    return jsonify({'questions': paginated_questions})
+
 
 
   '''
