@@ -31,7 +31,7 @@ This will install all of the required packages we selected within the `requireme
 - [Flask-CORS](https://flask-cors.readthedocs.io/en/latest/#) is the extension we'll use to handle cross origin requests from our frontend server. 
 
 ## Database Setup
-With Postgres running, restore a database using the trivia.psql file provided. From the backend folder in terminal run:
+With Postgres running, restore a database using the trivia.psql file provided. Note this application uses a username of `postgres` with password of `password` From the backend folder in terminal run:
 ```bash
 psql trivia < trivia.psql
 ```
