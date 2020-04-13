@@ -9,8 +9,6 @@ from models import setup_db, Question, Category
 
 QUESTIONS_PER_PAGE = 10
 
-
-
 def paginate_the_questions(request, selection):
   get_user_requested_page = request.args.get("page",type=int)
   if not get_user_requested_page:
@@ -42,7 +40,6 @@ def create_app(test_config=None):
     response.headers.add('Access-Control-Allow-Methods','GET, PUT, POST, PATCH, DELETE, OPTIONS')
     return response
 
-
   '''
   @TODO: 
   Create an endpoint to handle GET requests 
@@ -53,7 +50,6 @@ def create_app(test_config=None):
     #get all categories from db and return
     categories = Category.query.all()
     return jsonify({'success': True, 'categories': {db_category.id: db_category.type for db_category in categories}})
-
 
   '''
   @TODO: 
