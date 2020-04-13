@@ -66,29 +66,125 @@ One note before you delve into your tasks: for each endpoint you are expected to
 8. Create a POST endpoint to get questions to play the quiz. This endpoint should take category and previous question parameters and return a random questions within the given category, if provided, and that is not one of the previous questions. 
 9. Create error handlers for all expected errors including 400, 404, 422 and 500. 
 
-REVIEW_COMMENT
-```
-This README is missing documentation of your endpoints. Below is an example for your endpoint to get all categories. Please use it as a reference for creating your documentation and resubmit your code. 
+## Endpoints
 
-Endpoints
-GET '/categories'
-GET ...
-POST ...
-DELETE ...
+GET '/api/categories'
+GET '/api/categories/<:category_id>/questions'
+GET '/api/questions'
+POST '/api/questions'
+POST '/api/search-questions'
+POST '/api/quizzes'
+DELETE '/api/questions/<:question_id>'
 
-GET '/categories'
+##### GET '/categories'
 - Fetches a dictionary of categories in which the keys are the ids and the value is the corresponding string of the category
 - Request Arguments: None
-- Returns: An object with a single key, categories, that contains a object of id: category_string key:value pairs. 
-{'1' : "Science",
-'2' : "Art",
-'3' : "Geography",
-'4' : "History",
-'5' : "Entertainment",
-'6' : "Sports"}
-
+- Returns: An object with a categories key, that contains a object of id: category_string key:value pairs, and a success object boolean result.
+```
+{
+  "categories": {
+    "1": "Science",
+    "2": "Art",
+    "3": "Geography",
+    "4": "History",
+    "5": "Entertainment",
+    "6": "Sports"
+  },
+  "success": true
+}
 ```
 
+##### GET '/api/categories/<:category_id>/questions'
+- Fetches a dictionary of questions in a specific category
+- Request Arguments: integer of the `category_id<:int>` you wish to query
+- Returns: An object with a questions key, that contains an array of question key:value pairs, and a success object boolean result.
+```
+{
+  "questions": [
+    {
+      "answer": "The Liver",
+      "category": 1,
+      "difficulty": 4,
+      "id": 20,
+      "question": "What is the heaviest organ in the human body?"
+    }
+  "success": true
+}
+```
+
+##### GET '/api/questions'
+- Fetches a dictionary of all questions
+- Request Arguments: None
+- Returns: An object with a categories key, questions key, total_questions key, and a success key boolean result.
+```
+{
+  "categories": {
+    "1": "Science",
+    "2": "Art",
+    "3": "Geography",
+    "4": "History",
+    "5": "Entertainment",
+    "6": "Sports"
+  },
+  "questions": [
+    {
+      "answer": "Muhammad Ali",
+      "category": 4,
+      "difficulty": 1,
+      "id": 9,
+      "question": "What boxer's original name is Cassius Clay?"
+    }
+  ],
+  "success": true,
+  "total_questions": 17
+}
+```
+
+##### POST '/api/questions'
+- Adds a new question to the database
+- Request Arguments: four required values of `question<:text>` `answer<:text>` `difficulty<:int>` `category<:int>`
+- Returns: An object with a last_inserted_id, and a success object boolean result.
+```
+{
+  "last_inserted_id": 40,
+  "success": true
+}
+```
+
+##### POST '/search-questions'
+- Fetches a dictionary of questions matching the provided search term
+- Request Arguments: one required value of `searchTerm<:text>`
+- Returns: An object with a questions key holding an array of questions that match the search result and a success object boolean result.
+```
+{
+  "questions": [
+    {
+      "answer": "Edward Scissorhands",
+      "category": 5,
+      "difficulty": 3,
+      "id": 6,
+      "question": "What was the title of the 1990 fantasy directed by Tim Burton about a young man with multi-bladed appendages?"
+    }
+  ],
+  "success": true
+}
+```
+
+##### POST '/quizzes'
+- Fetches a single question based on desired input for a user to take a quiz
+- Request Arguments: takes in an array of previously answered questions `previous_questions<[:int]>` and `quiz_category` which is a json object of type string and id int
+- Returns: An object with a questions key holding an array of a single question for the user to answer on a quiz, and a success object boolean result.
+```
+{
+  "question": {
+    "answer": "Escher",
+    "category": 2,
+    "difficulty": 1,
+    "id": 16,
+    "question": "Which Dutch graphic artist–initials M C was a creator of optical illusions?"
+  }
+}
+```
 
 ## Testing
 To run the tests, run
