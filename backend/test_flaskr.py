@@ -14,9 +14,16 @@ class TriviaTestCase(unittest.TestCase):
         """Define test variables and initialize app."""
         self.app = create_app()
         self.client = self.app.test_client
-        self.database_name = "trivia_test"
-        self.database_path = "postgres://{}/{}".format('localhost:5432', self.database_name)
+        self.database_name = "trivia"
+        self.database_path = "postgresql://postgres:password@{}/{}".format('localhost:5432', self.database_name)
         setup_db(self.app, self.database_path)
+
+        self.add_new_question_data = {
+            "question":"Test Question",
+            "answer":"Test Answer",
+            "difficulty":"1",
+            "category":"1"
+        }
 
         # binds the app to the current context
         with self.app.app_context():
@@ -33,6 +40,31 @@ class TriviaTestCase(unittest.TestCase):
     TODO
     Write at least one test for each test for successful operation and for expected errors.
     """
+
+    def test_get_categories(self):
+        res = self.client().get("/api/categories") #test getting categories
+        self.assertEqual(res.status_code,200)
+        pass
+
+    def test_get_questions(self):
+        res = self.client().get("/api/questions") #test getting questions
+        self.assertEqual(res.status_code,200)
+        pass
+
+    def test_add_question(self):
+        res = self.client().post("/api/questions", json=self.add_new_question_data) #test adding a question
+        self.assertEqual(res.status_code,200)
+        pass
+
+    def test_400(self):
+        res = self.client().post("/api/quizzes", content_type='application/json', data="abc") #test malformed data to an endpoint
+        self.assertEqual(res.status_code,400)
+        pass
+
+    def test_404(self):
+        res = self.client().get("/api/cateogriesspelledwrong") #test invalid endpoint
+        self.assertEqual(res.status_code,404)
+        pass
 
 
 # Make the tests conveniently executable
