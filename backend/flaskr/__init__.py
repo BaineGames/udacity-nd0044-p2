@@ -2,6 +2,7 @@ import os
 from flask import Flask, request, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from sqlalchemy import func
 import random
 
 from models import setup_db, Question, Category
@@ -10,13 +11,15 @@ QUESTIONS_PER_PAGE = 10
 
 
 
-def questions_pager(req, sel):
-  get_page = req.args.get("page",type=int)
-  start_sel = (get_page - 1) * QUESTIONS_PER_PAGE
-  end_sel = start_sel + QUESTIONS_PER_PAGE
+def paginate_the_questions(request, selection):
+  get_user_requested_page = request.args.get("page",type=int)
+  if not get_user_requested_page:
+    get_user_requested_page = 1
+  starting_question_number = (get_user_requested_page - 1) * QUESTIONS_PER_PAGE
+  ending_question_number = starting_question_number + QUESTIONS_PER_PAGE
 
-  format_questions = [question.format() for question in sel]
-  return format_questions[start_sel:end_sel]
+  format_questions = [question.format() for question in selection]
+  return format_questions[starting_question_number:ending_question_number]
 
 def create_app(test_config=None):
   # create and configure the app
@@ -49,7 +52,7 @@ def create_app(test_config=None):
   def get_categories():
     #get all categories from db and return
     categories = Category.query.all()
-    return jsonify({'success': True, 'categories': [db_category.type for db_category in categories]})
+    return jsonify({'success': True, 'categories': {db_category.id: db_category.type for db_category in categories}})
 
 
   '''
@@ -70,7 +73,7 @@ def create_app(test_config=None):
     #get all questions first form db
     get_all_questions = Question.query.all() 
     #paginate the questions using utility function
-    questions = questions_pager(request, get_all_questions)
+    questions = paginate_the_questions(request, get_all_questions)
     #get all categories first form db
     categories = Category.query.all()
     #start an empty dict to build categories out with keys
@@ -117,13 +120,13 @@ def create_app(test_config=None):
   @app.route("/api/questions", methods=["POST"])
   def add_question():
     # get json body of request based on the front end sending it to you with predefined names
-    answer = request.json.get("answer")
-    category = request.json.get("category")
-    difficulty = request.json.get("difficulty")
-    question = request.json.get("question")
+    ans = request.json.get("answer")
+    cate = request.json.get("category")
+    diff = request.json.get("difficulty")
+    q = request.json.get("question")
 
     # assemble new question with the passed in data
-    new_question = Question(question,answer,category,difficulty)
+    new_question = Question(q,ans,cate,diff)
     # insert the new question
     new_question.insert()
     return jsonify(request.json)
@@ -138,25 +141,28 @@ def create_app(test_config=None):
   Try using the word "title" to start. 
   '''
 
+  @app.route("/api/search-questions", methods=["POST"])
+  def search_questions():
+    # grab term to be searched from request
+    get_search_term = request.json.get("searchTerm")
+    # format search term to be wild card based
+    search_term = "%{}%".format(get_search_term)
+    # return paginated results of the search term
+    return jsonify({'questions': paginate_the_questions(request, Question.query.filter(Question.question.ilike(search_term)).all())})
+
   '''
   @TODO: 
   Create a GET endpoint to get questions based on category. 
 
   TEST: In the "List" tab / main screen, clicking on one of the 
-  categories in the left column will cause only questions of that 
+  categories in the left column will cause only questions of that  
   category to be shown. 
   '''
 
-  @app.route("/api/categories/<int:cate_id>/questions")
-  def get_questions_based_on_category(cate_id):
+  @app.route("/api/categories/<int:requested_category_id>/questions")
+  def get_questions_based_on_category(requested_category_id):
 
-    questions = Question.query.filter_by(Question.category=cate_id).all()
-
-    paginated_questions = questions_pager(request, questions)
-
-    return jsonify({'questions': paginated_questions})
-
-
+    return jsonify({'questions': paginate_the_questions(request, Question.query.filter_by(category = requested_category_id).all())})
 
   '''
   @TODO: 
@@ -170,12 +176,42 @@ def create_app(test_config=None):
   and shown whether they were correct or not. 
   '''
 
+  @app.route("/api/quizzes", methods=["POST"])
+  def build_quiz():
+    # get category to use from args
+    quiz_category = request.json.get("quiz_category")["id"];
+    answered_questions = request.json.get("previous_questions")
+
+    if quiz_category != 0:  
+      quiz_question_bank = Question.query.filter(Question.id.notin_(answered_questions)).filter_by(category = quiz_category).order_by(func.random()).limit(1).all()
+    
+    if quiz_category == 0:
+      quiz_question_bank = Question.query.filter(Question.id.notin_(answered_questions)).order_by(func.random()).limit(1).all()
+
+    if len(quiz_question_bank) > 0:
+      formatted_question = quiz_question_bank[0].format()
+    
+    if len(quiz_question_bank) == 0:
+      formatted_question = ""
+
+    return jsonify({"question":formatted_question})
+
   '''
   @TODO: 
   Create error handlers for all expected errors 
-  including 404 and 422. 
+  including 404 and 400. 
   '''
-  
-  return app
 
-    
+  @app.errorhandler(404)
+  def throw_not_found(error):
+    return jsonify({
+      "error": 404
+    }), 404
+
+  @app.errorhandler(400)
+  def throw_not_found(error):
+    return jsonify({
+      "error": 400
+    }), 400
+
+  return app
