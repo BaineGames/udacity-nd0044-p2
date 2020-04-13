@@ -68,7 +68,7 @@ def create_app(test_config=None):
     
     #issue the delete of the question and return the deleted ID
     question.delete()
-    return jsonify({'deleted':q_id})
+    return jsonify({'success':True,'deleted':q_id})
 
   @app.route("/api/questions", methods=["POST"])
   def add_question():
@@ -77,12 +77,11 @@ def create_app(test_config=None):
     cate = request.json.get("category")
     diff = request.json.get("difficulty")
     q = request.json.get("question")
-
     # assemble new question with the passed in data
     new_question = Question(q,ans,cate,diff)
     # insert the new question
     new_question.insert()
-    return jsonify(request.json)
+    return jsonify({"success":True,"last_inserted_id":new_question.format()["id"]})
 
   @app.route("/api/search-questions", methods=["POST"])
   def search_questions():
@@ -91,12 +90,12 @@ def create_app(test_config=None):
     # format search term to be wild card based
     search_term = "%{}%".format(get_search_term)
     # return paginated results of the search term
-    return jsonify({'questions': paginate_the_questions(request, Question.query.filter(Question.question.ilike(search_term)).all())})
+    return jsonify({'success':True,'questions': paginate_the_questions(request, Question.query.filter(Question.question.ilike(search_term)).all())})
 
   @app.route("/api/categories/<int:requested_category_id>/questions")
   def get_questions_based_on_category(requested_category_id):
 
-    return jsonify({'questions': paginate_the_questions(request, Question.query.filter_by(category = requested_category_id).all())})
+    return jsonify({'success':True,'questions': paginate_the_questions(request, Question.query.filter_by(category = requested_category_id).all())})
 
   @app.route("/api/quizzes", methods=["POST"])
   def build_quiz():
@@ -117,7 +116,7 @@ def create_app(test_config=None):
       formatted_question = ""
 
     return jsonify({"question":formatted_question})
-    
+
   @app.errorhandler(404)
   def throw_not_found(error):
     return jsonify({
@@ -129,5 +128,11 @@ def create_app(test_config=None):
     return jsonify({
       "error": 400
     }), 400
+
+  @app.errorhandler(504)
+  def throw_not_found(error):
+    return jsonify({
+      "error": "Gateway Timeout"
+    }), 504
 
   return app
